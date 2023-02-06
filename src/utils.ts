@@ -1,59 +1,54 @@
-global.STORAGE_KEYS = {
-  BIK_CUSTOMER_ID: "BIK_CUSTOMER_ID",
-  SENT_CUSTOMER_ID_TO_SERVER: "SENT_CUSTOMER_ID_TO_SERVER",
-  WEB_PUSH_TOKEN: "WEB_PUSH_TOKEN",
-};
+export const enum STORAGE_KEYS {
+  BIK_CUSTOMER_ID,
+  SENT_CUSTOMER_ID_TO_SERVER,
+  WEB_PUSH_TOKEN,
+}
 
-global.STORAGE_LOCATION = {
-  LOCAL_STORAGE: "LOCAL_STORAGE",
-  COOKIE: "COOKIE",
-};
+export const enum STORAGE_LOCATION {
+  LOCAL_STORAGE,
+  COOKIE,
+}
 
-global.StorageKeysMap = {
-  [global.STORAGE_KEYS.BIK_CUSTOMER_ID]: {
+
+export const StorageKeysMap = {
+  [STORAGE_KEYS.BIK_CUSTOMER_ID]: {
     value: "bik_customer_id",
-    location: global.STORAGE_LOCATION.LOCAL_STORAGE,
+    location: STORAGE_LOCATION.LOCAL_STORAGE,
   },
-  [global.STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER]: {
+  [STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER]: {
     value: "sent_customer_id_to_server",
-    location: global.STORAGE_LOCATION.LOCAL_STORAGE,
+    location: STORAGE_LOCATION.LOCAL_STORAGE,
   },
-  [global.STORAGE_KEYS.WEB_PUSH_TOKEN]: {
+  [STORAGE_KEYS.WEB_PUSH_TOKEN]: {
     value: "web_push_token",
-    location: global.STORAGE_LOCATION.COOKIE,
+    location: STORAGE_LOCATION.COOKIE,
   },
 };
-global.getLocalStorageValue = (
-  key: "BIK_CUSTOMER_ID" | "SENT_CUSTOMER_ID_TO_SERVER" | "WEB_PUSH_TOKEN"
-) => {
-  if (global.StorageKeysMap[key].location === global.STORAGE_LOCATION.COOKIE) {
-    return global.getCookie(global.StorageKeysMap[key].value);
-  }
-  return window.localStorage.getItem(global.StorageKeysMap[key].value);
-};
 
-global.setLocalStorageValue = (
-  key: "BIK_CUSTOMER_ID" | "SENT_CUSTOMER_ID_TO_SERVER" | "WEB_PUSH_TOKEN",
-  value: string
-) => {
-  if (global.StorageKeysMap[key].location === global.TORAGE_LOCATION.COOKIE) {
-    global.createCookie(global.StorageKeysMap[key].value, value);
+export function getLocalStorageValue(key: STORAGE_KEYS) {
+  if (StorageKeysMap[key].location === STORAGE_LOCATION.COOKIE) {
+    return getCookie(StorageKeysMap[key].value);
+  }
+  return window.localStorage.getItem(StorageKeysMap[key].value);
+}
+
+export function setLocalStorageValue(key: STORAGE_KEYS, value: string) {
+  if (StorageKeysMap[key].location === STORAGE_LOCATION.COOKIE) {
+    createCookie(StorageKeysMap[key].value, value);
     return;
   }
-  window.localStorage.setItem(global.StorageKeysMap[key].value, value);
-};
+  window.localStorage.setItem(StorageKeysMap[key].value, value);
+}
 
-global.deleteLocalStorageValue = (
-  key: "BIK_CUSTOMER_ID" | "SENT_CUSTOMER_ID_TO_SERVER" | "WEB_PUSH_TOKEN"
-) => {
-  if (global.StorageKeysMap[key].location === global.STORAGE_LOCATION.COOKIE) {
-    global.clearCookie(global.StorageKeysMap[key].value);
+export function deleteLocalStorageValue(key: STORAGE_KEYS) {
+  if (StorageKeysMap[key].location === STORAGE_LOCATION.COOKIE) {
+    clearCookie(StorageKeysMap[key].value);
     return;
   }
-  window.localStorage.removeItem(global.StorageKeysMap[key].value);
-};
+  window.localStorage.removeItem(StorageKeysMap[key].value);
+}
 
-global.createCookie = (name: string, value: string, days: number = 3650) => {
+function createCookie(name: string, value: string, days: number = 3650) {
   var expires;
   if (days) {
     var date = new Date();
@@ -63,9 +58,9 @@ global.createCookie = (name: string, value: string, days: number = 3650) => {
     expires = "";
   }
   document.cookie = name + "=" + value + expires + "; path=/";
-};
+}
 
-global.getCookie = (cookieName: string) => {
+function getCookie(cookieName: string) {
   if (document.cookie.length > 0) {
     let cookieStart = document.cookie.indexOf(cookieName + "=");
     if (cookieStart != -1) {
@@ -78,8 +73,8 @@ global.getCookie = (cookieName: string) => {
     }
   }
   return "";
-};
+}
 
-global.clearCookie = (cookieName: string) => {
-  global.createCookie(cookieName, "");
-};
+function clearCookie(cookieName: string) {
+  createCookie(cookieName, "");
+}

@@ -1,10 +1,22 @@
-import { BikModel, BikCustomerModel } from "./model";
+import { BikModel, BikCustomerModel, SnowplowModel } from "./model";
 import { getMessaging, getToken, Messaging } from "firebase/messaging";
-import { FirebaseOptions, initializeApp } from "firebase/app";
+import { initializeApp } from "firebase/app";
+import {
+  getLocalStorageValue,
+  setLocalStorageValue,
+  STORAGE_KEYS,
+} from "./utils";
+import {
+  setUpNotificationClickListener,
+  setUpFCMListener,
+  checkWebPushValidity,
+  getShopifyCustomerId,
+  setUpSnowPlowTracker,
+} from "./helper";
+import { config } from "./config";
 
-class BikTracker {
+export class BikTracker {
   swFileLocation: string;
-  firebaseCompatUrl: string;
   webPushToken: string;
   shopifyCustomerId: string;
   vapidKey: string;
@@ -14,39 +26,38 @@ class BikTracker {
   baseUrl: string;
   firebaseMessaging: Messaging;
   constructor(payload: BikModel) {
-    const fcmLocation =
-      payload.source === "shopify"
-        ? `/apps/bik${payload.r ? "" : "-staging"}/`
-        : `/bik/`;
-    this.swFileLocation = `${window.location.protocol}//${window.location.host}${fcmLocation}firebase-messaging-sw.js`;
+    this.init(payload);
+  }
 
-    this.firebaseCompatUrl = `https://cdn.jsdelivr.net/gh/Bik-aiDev/web-push${
-      payload.r ? "" : "-staging"
-    }/firebase-messaging-compat-1.js`;
+  async init(payload: BikModel) {
+    this.swFileLocation = `${window.location.protocol}//${
+      window.location.host
+    }${
+      config[`${payload.r}`].fcmLocation[payload.source]
+    }firebase-messaging-sw.js`;
 
     this.baseUrl = payload.baseUrl;
     this.source = payload.source;
-    this.initializeMessaging(payload.config, payload.r);
+    this.initializeMessaging(payload.r);
     this.setUpListeners(payload.events);
-    this.setUp(payload.vapidKey, payload.r, payload.snowplowCollectorUrl);
-  }
-
-  async setUpListeners(events: string[]) {
-    global.setUpNotificationClickListener();
-    global.setUpFCMListener(
-      this.firebaseMessaging,
-      events,
-      this.swFileLocation
+    this.setUp(
+      config[`${payload.r}`].vapidKey,
+      config[`${payload.r}`].snowplow
     );
   }
 
-  async initializeMessaging(config: FirebaseOptions, r: boolean) {
-    const app = initializeApp(config);
+  async setUpListeners(events: string[]) {
+    setUpNotificationClickListener();
+    setUpFCMListener(this.firebaseMessaging, events, this.swFileLocation);
+  }
+
+  async initializeMessaging(r: boolean) {
+    const app = initializeApp(config[`${r}`].firebase);
     this.firebaseMessaging = getMessaging(app);
   }
 
   async generateWebPushToken(vapidKey: string) {
-    const isWebPushAllowed = await global.checkWebPushValidity();
+    const isWebPushAllowed = await checkWebPushValidity();
     if (!isWebPushAllowed) {
       return;
     }
@@ -114,11 +125,10 @@ class BikTracker {
   }
 
   setUpShopifyCustomerId() {
-    const shopifyCustomerId = global.getShopifyCustomerId();
+    const shopifyCustomerId = getShopifyCustomerId();
     if (
       shopifyCustomerId &&
-      global.getLocalStorageValue(global.STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER) !==
-        "1"
+      getLocalStorageValue(STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER) !== "1"
     ) {
       this.shopifyCustomerId = shopifyCustomerId;
     }
@@ -127,89 +137,38 @@ class BikTracker {
   async setUpBikCustomer() {
     if (
       (this.webPushToken || this.shopifyCustomerId) &&
-      !global.getLocalStorageValue(global.STORAGE_KEYS.BIK_CUSTOMER_ID)
+      !getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID)
     ) {
       const bikCustomer = await this.createBikCustomer();
       if (!!bikCustomer) {
         if (bikCustomer.partnerData) {
-          global.setLocalStorageValue(
-            global.STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER,
-            "1"
-          );
+          setLocalStorageValue(STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER, "1");
         }
         this.bikCustomerId = `${bikCustomer.id}`;
-        global.setLocalStorageValue(
-          global.STORAGE_KEYS.BIK_CUSTOMER_ID,
-          `${bikCustomer.id}`
-        );
+        setLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID, `${bikCustomer.id}`);
       }
     }
   }
 
   async setUpWebPushToken(vapidKey: string) {
-    if (!global.getLocalStorageValue(global.STORAGE_KEYS.WEB_PUSH_TOKEN)) {
+    if (!getLocalStorageValue(STORAGE_KEYS.WEB_PUSH_TOKEN)) {
       await this.generateWebPushToken(vapidKey);
       if (this.webPushToken) {
-        global.setLocalStorageValue(
-          global.STORAGE_KEYS.WEB_PUSH_TOKEN,
-          this.webPushToken
-        );
+        setLocalStorageValue(STORAGE_KEYS.WEB_PUSH_TOKEN, this.webPushToken);
       }
     } else {
-      this.webPushToken = global.getLocalStorageValue(
-        global.STORAGE_KEYS.WEB_PUSH_TOKEN
-      );
+      this.webPushToken = getLocalStorageValue(STORAGE_KEYS.WEB_PUSH_TOKEN);
     }
   }
 
-  async setUp(vapidKey: string, r: boolean, snowplowCollectorUrl: string) {
+  async setUp(vapidKey: string, snowplowConfig: SnowplowModel) {
     await this.setUpWebPushToken(vapidKey);
     this.setUpShopifyCustomerId();
     await this.setUpBikCustomer();
-    await global.setUpSnowPlowTracker(
-      r,
-      snowplowCollectorUrl,
-      this.bikCustomerId
-    );
+    await setUpSnowPlowTracker(snowplowConfig, this.bikCustomerId);
   }
 }
 
-var BIK =
-  BIK ||
-  (function () {
-    var _args: BikModel = {
-      r: false,
-      baseUrl: "",
-      vapidKey: "",
-      config: {
-        apiKey: "",
-        appId: "",
-        authDomain: "",
-        databaseURL: "",
-        messagingSenderId: "",
-        projectId: "",
-        storageBucket: "",
-      },
-      events: [],
-      source: "shopify",
-      snowplowCollectorUrl: "",
-    };
-
-    return {
-      init: function (args: BikModel) {
-        debugger;
-        _args = args;
-        const bikTracker = new BikTracker(args);
-        console.log(bikTracker.baseUrl);
-      },
-      fetch: function () {
-        return _args;
-      },
-    };
-  })();
-
-global.BIK = BIK;
-function setUpNotificationClickListener() {
-  throw new Error("Function not implemented.");
-}
-
+global.BIK = function (bikModel: BikModel) {
+  new BikTracker(bikModel);
+};

@@ -1,105 +1,7 @@
 import { Messaging, onMessage } from "firebase/messaging";
-import { EventModel } from "./model";
+import { EventModel, SnowplowModel } from "./model";
 
-global.setUpSnowPlowTracker = (
-  r: boolean,
-  snowplowCollectorUrl: string,
-  bikCustomerId: string
-) => {
-  const _window = window as any;
-  var sp_clean_obj = function (o) {
-    return o && (o.schema ? delete o.schema : o.shift()) && o;
-  };
-  sp_clean_obj = sp_clean_obj;
-  (function (p: any, l, o, w, i, n, g) {
-    if (!p[i]) {
-      p.GlobalSnowplowNamespace = p.GlobalSnowplowNamespace || [];
-      p.GlobalSnowplowNamespace.push(i);
-      p[i] = function () {
-        (p[i].q = p[i].q || []).push(arguments);
-      };
-      p[i].q = p[i].q || [];
-      n = l.createElement(o);
-      g = l.getElementsByTagName(o)[0];
-      n.async = 1;
-      n.src = w;
-      g.parentNode.insertBefore(n, g);
-    }
-  })(
-    window,
-    document,
-    "script",
-    `https://cdn.jsdelivr.net/gh/Bik-aiDev/snowplow-${
-      r ? "" : "staging"
-    }/sp.js`,
-    "snowplow"
-  );
-  _window.snowplow("bikTracker", "sp1", snowplowCollectorUrl, {
-    appId: document.location.hostname,
-    platform: "web",
-    cookieDomain: document.location.hostname
-      .split(".")
-      .reverse()
-      .splice(0, 2)
-      .reverse()
-      .join("."),
-    post: true,
-    contexts: {
-      webPage: true,
-      performanceTiming: true,
-      session: true,
-    },
-  });
-  _window.snowplow("trackPageView");
-  _window.snowplow("enableLinkClickTracking", { pseudoClicks: true });
-  _window.snowplow("setUserId", bikCustomerId);
-  _window.snowplow("refreshLinkClickTracking");
-};
-
-global.checkWebPushValidity = async () => {
-  const _navigator = navigator as any;
-  if (_navigator.brave) {
-    const isBraveBrowser = await _navigator.brave.isBrave();
-    return !isBraveBrowser;
-  } else {
-    return true;
-  }
-};
-
-global.captureMessageReceiveEvent = async (
-  notificationOptions,
-  events: string[]
-) => {
-  events.forEach((eventName) => {
-    const payload = {
-      eventName,
-      properties: {
-        openedAt: new Date().toISOString(),
-      },
-      storeUrl: self.location.host,
-      broadcastId: notificationOptions.data.broadcastId,
-      customerId: notificationOptions.data.customerId,
-    };
-    const deliveredRaw = JSON.stringify(payload);
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
-
-    const requestOptions = {
-      method: "POST",
-      headers: myHeaders,
-      body: deliveredRaw,
-    };
-
-    fetch(
-      notificationOptions.data.baseUrl + "/webPushApiFunctions-captureEvent",
-      requestOptions
-    )
-      .then((response) => response.text())
-      .catch((error) => console.log("error", error));
-  });
-};
-
-global.setUpNotificationClickListener = () => {
+export function setUpNotificationClickListener() {
   self.addEventListener(
     "notificationclick",
     function (event: EventModel | Event) {
@@ -114,13 +16,12 @@ global.setUpNotificationClickListener = () => {
       window.open(_event.action);
     }
   );
-};
-
-global.setUpFCMListener = (
+}
+export function setUpFCMListener(
   messaging: Messaging,
   events: string[],
   swFileLocation: string
-) => {
+) {
   onMessage(messaging, (payload) => {
     const actions = JSON.parse(payload.data["actions"]);
     const notificationTitle = payload.data.title;
@@ -137,7 +38,7 @@ global.setUpFCMListener = (
       },
       actions,
     };
-    global.captureMessageReceiveEvent(notificationOptions, events);
+    this.captureMessageReceiveEvent(notificationOptions, events);
     if (!actions) {
       if (!("Notification" in window)) {
         console.log("This browser does not support system notifications.");
@@ -161,9 +62,18 @@ global.setUpFCMListener = (
         registration.showNotification(notificationTitle, notificationOptions);
       });
   });
-};
+}
+export async function checkWebPushValidity() {
+  const _navigator = navigator as any;
+  if (_navigator.brave) {
+    const isBraveBrowser = await _navigator.brave.isBrave();
+    return !isBraveBrowser;
+  } else {
+    return true;
+  }
+}
 
-global.getShopifyCustomerId = (): string => {
+export function getShopifyCustomerId(): string {
   return (
     JSON.parse(
       Array.from(document.head.getElementsByTagName("script"))
@@ -172,5 +82,58 @@ global.getShopifyCustomerId = (): string => {
         .split(";")[0]
     ).cid || ""
   );
-};
+}
 
+export function setUpSnowPlowTracker(
+  snowplowConfig: SnowplowModel,
+  bikCustomerId: string
+) {
+  const _window = window as any;
+  var sp_clean_obj = function (o) {
+    return o && (o.schema ? delete o.schema : o.shift()) && o;
+  };
+  sp_clean_obj = sp_clean_obj;
+  (function (p: any, l, o, w, i, n, g) {
+    if (!p[i]) {
+      p.GlobalSnowplowNamespace = p.GlobalSnowplowNamespace || [];
+      p.GlobalSnowplowNamespace.push(i);
+      p[i] = function () {
+        (p[i].q = p[i].q || []).push(arguments);
+      };
+      p[i].q = p[i].q || [];
+      n = l.createElement(o);
+      g = l.getElementsByTagName(o)[0];
+      n.async = 1;
+      n.src = w;
+      g.parentNode.insertBefore(n, g);
+    }
+  })(window, document, "script", snowplowConfig.spSource, "snowplow");
+  _window.snowplow("bikTracker", "sp1", snowplowConfig.collectorUrl, {
+    appId: document.location.hostname,
+    platform: "web",
+    cookieDomain: document.location.hostname
+      .split(".")
+      .reverse()
+      .splice(0, 2)
+      .reverse()
+      .join("."),
+    post: true,
+    contexts: {
+      webPage: true,
+      performanceTiming: true,
+      session: true,
+    },
+  });
+  _window.snowplow("trackPageView");
+  _window.snowplow("enableLinkClickTracking", { pseudoClicks: true });
+  _window.snowplow("setUserId", bikCustomerId);
+  _window.snowplow("refreshLinkClickTracking");
+}
+
+module.exports = {
+  setUpFCMListener,
+  setUpNotificationClickListener,
+  setUpSnowPlowTracker,
+  checkWebPushValidity,
+  getShopifyCustomerId,
+};

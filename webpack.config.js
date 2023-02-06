@@ -1,14 +1,32 @@
 const path = require('path');
-const { webpack , DefinePlugin} = require('webpack');
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
-    entry: './src/index.ts',
+    entry: {
+        "index": path.resolve(__dirname, 'src/index.ts')
+    },
     output: {
-        path: path.resolve(__dirname, 'build'),
-        filename: 'index.js',
+        chunkFilename: '[name].js',
+        filename: '[name].js'
     },
+    devtool: 'source-map',
+    mode: 'production',
     module: {
-        rules: [{ test: /\.ts$/, use: 'ts-loader' }],
+        rules: [
+            {
+                test: /\.ts$/,
+                loader: 'ts-loader',
+                exclude: ['/node_modules/', '/test/'],
+            },
+            {
+                test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
+                type: 'asset',
+            }
+        ],
     },
-    mode: 'production'
+    optimization: {
+        minimize: true,
+        minimizer: [new TerserPlugin()], // Uglify alternative
+    },
+    resolve: { extensions: ['.ts'] },
 };

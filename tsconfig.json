@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "module": "amd",
     "esModuleInterop": true,
-    "target": "es6",
+    "target": "es5",
     "moduleResolution": "node",
     "sourceMap": true,
-    "outFile": "dist/index.js"
+    "outDir": "build"
   },
+  "include": ["src"],
+  "exclude": ["**/*.test.ts"],
   "lib": ["es2015"]
 }
 
