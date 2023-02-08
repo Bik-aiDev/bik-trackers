@@ -50,7 +50,7 @@ var BikTracker = /** @class */ (function () {
     BikTracker.prototype.init = function (payload) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(payload.r)].fcmLocation[payload.source], "firebase-messaging-sw.js");
+                this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(payload.r)].fcmLocation[payload.source], "bik-webpush.js");
                 this.baseUrl = payload.baseUrl;
                 this.source = payload.source;
                 this.initializeMessaging(payload.r);

@@ -1,4 +1,9 @@
-import { BikModel, BikCustomerModel, SnowplowModel } from "./model";
+import {
+  BikModel,
+  BikCustomerModel,
+  SnowplowModel,
+  StoreSourceType,
+} from "./model";
 import { getMessaging, getToken, Messaging } from "firebase/messaging";
 import { initializeApp } from "firebase/app";
 import {
@@ -22,7 +27,7 @@ export class BikTracker {
   vapidKey: string;
   askedWpPermission: boolean = false;
   bikCustomerId: string;
-  source: "woocommerce" | "shopify";
+  source: StoreSourceType;
   baseUrl: string;
   firebaseMessaging: Messaging;
   constructor(payload: BikModel) {
@@ -34,7 +39,7 @@ export class BikTracker {
       window.location.host
     }${
       config[`${payload.r}`].fcmLocation[payload.source]
-    }firebase-messaging-sw.js`;
+    }bik-webpush.js`;
 
     this.baseUrl = payload.baseUrl;
     this.source = payload.source;

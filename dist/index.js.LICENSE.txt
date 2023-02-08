@@ -1,3 +1,9 @@
+/*!
+ * Browser tracker for Snowplow v3.8.0 (http://bit.ly/sp-js)
+ * Copyright 2022 Snowplow Analytics Ltd, 2010 Anthon Pang
+ * Licensed under BSD-3-Clause
+ */
+
 /**
  * @license
  * Copyright 2017 Google LLC

@@ -1,10 +1,17 @@
+import { setUp } from "./setUpJestMock";
+import { checkWebPushValidity } from "../src/helper";
+
 describe("helpers test", () => {
-  beforeEach(() => {});
+  beforeEach(() => {
+    setUp();
+  });
   test("setUpSnowPlowTracker", () => {
     expect(1).toBe(1);
   });
 
-  test("checkWebPushValidity", () => {
+  test("checkWebPushValidity", async () => {
+    const isWebPushValid = await checkWebPushValidity();
+    console.log(isWebPushValid);
     expect(1).toBe(1);
   });
 
