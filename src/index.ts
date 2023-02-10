@@ -16,7 +16,6 @@ import {
   setUpFCMListener,
   checkWebPushValidity,
   getShopifyCustomerId,
-  setUpSnowPlowTracker,
 } from "./helper";
 import { config } from "./config";
 
@@ -31,24 +30,19 @@ export class BikTracker {
   baseUrl: string;
   firebaseMessaging: Messaging;
   constructor(payload: BikModel) {
-    this.init(payload);
-  }
-
-  async init(payload: BikModel) {
     this.swFileLocation = `${window.location.protocol}//${
       window.location.host
-    }${
-      config[`${payload.r}`].fcmLocation[payload.source]
-    }bik-webpush.js`;
+    }${config[`${payload.r}`].fcmLocation[payload.source]}bik-webpush.js`;
 
     this.baseUrl = payload.baseUrl;
     this.source = payload.source;
     this.initializeMessaging(payload.r);
     this.setUpListeners(payload.events);
-    this.setUp(
-      config[`${payload.r}`].vapidKey,
-      config[`${payload.r}`].snowplow
-    );
+  }
+
+  async init(r: boolean) {
+    await this.setUpWebPushToken(config[`${r}`].vapidKey);
+    this.setUpShopifyCustomerId();
   }
 
   async setUpListeners(events: string[]) {
@@ -102,27 +96,28 @@ export class BikTracker {
   }
 
   async createBikCustomer(): Promise<BikCustomerModel | undefined> {
-    var myHeaders = new Headers();
+    const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
 
-    var raw = JSON.stringify({
-      token: this.webPushToken,
-      storeUrl: window.location.host,
+    const raw = JSON.stringify({
+      webPushToken: this.webPushToken,
+      partnerCustomerId: this.shopifyCustomerId,
+      storeUrl: "icebreakerss.myshopify.com",
       source: this.source,
     });
 
-    var requestOptions = {
+    const requestOptions = {
       method: "POST",
       headers: myHeaders,
       body: raw,
     };
 
     const response = await fetch(
-      `${this.baseUrl}/webPushApiFunctions-registerToken`,
+      `http://localhost:8080/bikTrackerApiFunctions-createBikCustomer`,
       requestOptions
     );
     const result = await response.json();
-    if (result.status === 200) {
+    if (result.status) {
       return result.customer;
     } else {
       return undefined;
@@ -139,22 +134,6 @@ export class BikTracker {
     }
   }
 
-  async setUpBikCustomer() {
-    if (
-      (this.webPushToken || this.shopifyCustomerId) &&
-      !getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID)
-    ) {
-      const bikCustomer = await this.createBikCustomer();
-      if (!!bikCustomer) {
-        if (bikCustomer.partnerData) {
-          setLocalStorageValue(STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER, "1");
-        }
-        this.bikCustomerId = `${bikCustomer.id}`;
-        setLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID, `${bikCustomer.id}`);
-      }
-    }
-  }
-
   async setUpWebPushToken(vapidKey: string) {
     if (!getLocalStorageValue(STORAGE_KEYS.WEB_PUSH_TOKEN)) {
       await this.generateWebPushToken(vapidKey);
@@ -166,14 +145,40 @@ export class BikTracker {
     }
   }
 
-  async setUp(vapidKey: string, snowplowConfig: SnowplowModel) {
-    await this.setUpWebPushToken(vapidKey);
-    this.setUpShopifyCustomerId();
-    await this.setUpBikCustomer();
-    await setUpSnowPlowTracker(snowplowConfig, this.bikCustomerId);
+  async createOrUpdateBikCustomer(r: boolean): Promise<string> {
+    await this.init(r);
+
+    if (
+      (this.webPushToken || this.shopifyCustomerId) &&
+      !getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID)
+    ) {
+      const bikCustomer = await this.createBikCustomer();
+      if (!!bikCustomer) {
+        if (bikCustomer.partnerCustomerId) {
+          setLocalStorageValue(STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER, "1");
+        }
+        this.bikCustomerId = `${bikCustomer.id}`;
+        setLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID, `${bikCustomer.id}`);
+      }
+    }
+    return getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID);
+  }
+
+  async getUserId(r: boolean) {
+    let bikCustomerId = getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID);
+    if (bikCustomerId) {
+      this.createOrUpdateBikCustomer(r);
+    } else {
+      bikCustomerId = await this.createOrUpdateBikCustomer(r);
+    }
+    return bikCustomerId;
   }
 }
 
-global.BIK = function (bikModel: BikModel) {
-  new BikTracker(bikModel);
+global.BIK = {
+  getUserId: async (bikModel: BikModel) => {
+    const bikTracker = new BikTracker(bikModel);
+    const userId = await bikTracker.getUserId(bikModel.r);
+    return userId;
+  },
 };

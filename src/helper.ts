@@ -1,14 +1,5 @@
-import {
-  enableLinkClickTracking,
-  LinkClickTrackingPlugin,
-} from "@snowplow/browser-plugin-link-click-tracking";
-import {
-  newTracker,
-  setUserId,
-  trackPageView,
-} from "@snowplow/browser-tracker";
 import { Messaging, onMessage } from "firebase/messaging";
-import { EventModel, SnowplowModel } from "./model";
+import { EventModel } from "./model";
 
 export function setUpNotificationClickListener() {
   self.addEventListener(
@@ -17,7 +8,7 @@ export function setUpNotificationClickListener() {
       const _event = event as EventModel;
       console.log("Received notificationclick event");
       if (!(event as any).action) {
-        var click_action = (_event as EventModel).notification.data;
+        const click_action = (_event as EventModel).notification.data;
         _event.notification.close();
         _event.waitUntil(window.open(click_action));
         return;
@@ -87,7 +78,7 @@ export function setUpFCMListener(
         console.log("This browser does not support system notifications.");
       } else if (Notification.permission === "granted") {
         // If it's okay let's create a notification
-        var notification = new Notification(
+        const notification = new Notification(
           notificationTitle,
           notificationOptions
         );
@@ -117,46 +108,16 @@ export async function checkWebPushValidity() {
 
 export function getShopifyCustomerId(): string {
   try {
-    return JSON.parse(
-      Array.from(document.head.getElementsByTagName("script"))
-        .find((script) => script.id === "__st")
-        ?.innerHTML.split("var __st=")[1]
-        .split(";")[0]
-    ).cid;
+    return (window as any).__st.cid || "";
   } catch (e) {
     console.log("Shopify tag missing");
     return "";
   }
 }
 
-export function setUpSnowPlowTracker(
-  snowplowConfig: SnowplowModel,
-  bikCustomerId: string
-) {
-  newTracker("bikTracker", snowplowConfig.collectorUrl, {
-    appId: document.location.hostname,
-    platform: "web",
-    cookieDomain: document.location.hostname
-      .split(".")
-      .reverse()
-      .splice(0, 2)
-      .reverse()
-      .join("."),
-    contexts: {
-      webPage: true,
-      session: true,
-    },
-    plugins: [LinkClickTrackingPlugin()],
-  });
-  setUserId(bikCustomerId);
-  trackPageView();
-  enableLinkClickTracking({ pseudoClicks: true });
-}
-
 module.exports = {
   setUpFCMListener,
   setUpNotificationClickListener,
-  setUpSnowPlowTracker,
   checkWebPushValidity,
   getShopifyCustomerId,
 };

@@ -45,5 +45,5 @@ export interface EventModel {
 
 export interface BikCustomerModel {
   id: number;
-  partnerData?: { partnerCustomerId: number };
+  partnerCustomerId?: number;
 }

@@ -13,6 +13,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^29.4.0",
+    "jest-environment-jsdom": "^29.4.2",
     "jsdom": "^21.1.0",
     "terser-webpack-plugin": "^5.3.6",
     "ts-loader": "^9.4.2",
@@ -23,8 +24,6 @@
   "dependencies": {
     "@firebase/app-compat": "^0.2.1",
     "@firebase/messaging-compat": "^0.2.1",
-    "@snowplow/browser-plugin-link-click-tracking": "^3.8.0",
-    "@snowplow/browser-tracker": "^3.8.0",
     "amd-loader": "^0.0.8",
     "fetch-mock-jest": "^1.5.1",
     "firebase": "^9.16.0",

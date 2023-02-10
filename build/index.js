@@ -45,18 +45,22 @@ var config_1 = require("./config");
 var BikTracker = /** @class */ (function () {
     function BikTracker(payload) {
         this.askedWpPermission = false;
-        this.init(payload);
+        this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(payload.r)].fcmLocation[payload.source], "bik-webpush.js");
+        this.baseUrl = payload.baseUrl;
+        this.source = payload.source;
+        this.initializeMessaging(payload.r);
+        this.setUpListeners(payload.events);
     }
-    BikTracker.prototype.init = function (payload) {
+    BikTracker.prototype.init = function (r) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(payload.r)].fcmLocation[payload.source], "bik-webpush.js");
-                this.baseUrl = payload.baseUrl;
-                this.source = payload.source;
-                this.initializeMessaging(payload.r);
-                this.setUpListeners(payload.events);
-                this.setUp(config_1.config["".concat(payload.r)].vapidKey, config_1.config["".concat(payload.r)].snowplow);
-                return [2 /*return*/];
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.setUpWebPushToken(config_1.config["".concat(r)].vapidKey)];
+                    case 1:
+                        _a.sent();
+                        this.setUpShopifyCustomerId();
+                        return [2 /*return*/];
+                }
             });
         });
     };
@@ -157,8 +161,9 @@ var BikTracker = /** @class */ (function () {
                         myHeaders = new Headers();
                         myHeaders.append("Content-Type", "application/json");
                         raw = JSON.stringify({
-                            token: this.webPushToken,
-                            storeUrl: window.location.host,
+                            webPushToken: this.webPushToken,
+                            partnerCustomerId: this.shopifyCustomerId,
+                            storeUrl: "icebreakerss.myshopify.com",
                             source: this.source,
                         });
                         requestOptions = {
@@ -166,13 +171,13 @@ var BikTracker = /** @class */ (function () {
                             headers: myHeaders,
                             body: raw,
                         };
-                        return [4 /*yield*/, fetch("".concat(this.baseUrl, "/webPushApiFunctions-registerToken"), requestOptions)];
+                        return [4 /*yield*/, fetch("http://localhost:8080/bikTrackerApiFunctions-createBikCustomer", requestOptions)];
                     case 1:
                         response = _a.sent();
                         return [4 /*yield*/, response.json()];
                     case 2:
                         result = _a.sent();
-                        if (result.status === 200) {
+                        if (result.status) {
                             return [2 /*return*/, result.customer];
                         }
                         else {
@@ -189,30 +194,6 @@ var BikTracker = /** @class */ (function () {
             (0, utils_1.getLocalStorageValue)(1 /* STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER */) !== "1") {
             this.shopifyCustomerId = shopifyCustomerId;
         }
-    };
-    BikTracker.prototype.setUpBikCustomer = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var bikCustomer;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!((this.webPushToken || this.shopifyCustomerId) &&
-                            !(0, utils_1.getLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */))) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.createBikCustomer()];
-                    case 1:
-                        bikCustomer = _a.sent();
-                        if (!!bikCustomer) {
-                            if (bikCustomer.partnerData) {
-                                (0, utils_1.setLocalStorageValue)(1 /* STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER */, "1");
-                            }
-                            this.bikCustomerId = "".concat(bikCustomer.id);
-                            (0, utils_1.setLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */, "".concat(bikCustomer.id));
-                        }
-                        _a.label = 2;
-                    case 2: return [2 /*return*/];
-                }
-            });
-        });
     };
     BikTracker.prototype.setUpWebPushToken = function (vapidKey) {
         return __awaiter(this, void 0, void 0, function () {
@@ -235,21 +216,47 @@ var BikTracker = /** @class */ (function () {
             });
         });
     };
-    BikTracker.prototype.setUp = function (vapidKey, snowplowConfig) {
+    BikTracker.prototype.createOrUpdateBikCustomer = function (r) {
         return __awaiter(this, void 0, void 0, function () {
+            var bikCustomer;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.setUpWebPushToken(vapidKey)];
+                    case 0: return [4 /*yield*/, this.init(r)];
                     case 1:
                         _a.sent();
-                        this.setUpShopifyCustomerId();
-                        return [4 /*yield*/, this.setUpBikCustomer()];
+                        if (!((this.webPushToken || this.shopifyCustomerId) &&
+                            !(0, utils_1.getLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */))) return [3 /*break*/, 3];
+                        return [4 /*yield*/, this.createBikCustomer()];
                     case 2:
-                        _a.sent();
-                        return [4 /*yield*/, (0, helper_1.setUpSnowPlowTracker)(snowplowConfig, this.bikCustomerId)];
-                    case 3:
-                        _a.sent();
-                        return [2 /*return*/];
+                        bikCustomer = _a.sent();
+                        if (!!bikCustomer) {
+                            if (bikCustomer.partnerCustomerId) {
+                                (0, utils_1.setLocalStorageValue)(1 /* STORAGE_KEYS.SENT_CUSTOMER_ID_TO_SERVER */, "1");
+                            }
+                            this.bikCustomerId = "".concat(bikCustomer.id);
+                            (0, utils_1.setLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */, "".concat(bikCustomer.id));
+                        }
+                        _a.label = 3;
+                    case 3: return [2 /*return*/, (0, utils_1.getLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */)];
+                }
+            });
+        });
+    };
+    BikTracker.prototype.getUserId = function (r) {
+        return __awaiter(this, void 0, void 0, function () {
+            var bikCustomerId;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        bikCustomerId = (0, utils_1.getLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */);
+                        if (!bikCustomerId) return [3 /*break*/, 1];
+                        this.createOrUpdateBikCustomer(r);
+                        return [3 /*break*/, 3];
+                    case 1: return [4 /*yield*/, this.createOrUpdateBikCustomer(r)];
+                    case 2:
+                        bikCustomerId = _a.sent();
+                        _a.label = 3;
+                    case 3: return [2 /*return*/, bikCustomerId];
                 }
             });
         });
@@ -257,7 +264,19 @@ var BikTracker = /** @class */ (function () {
     return BikTracker;
 }());
 exports.BikTracker = BikTracker;
-global.BIK = function (bikModel) {
-    new BikTracker(bikModel);
+global.BIK = {
+    getUserId: function (bikModel) { return __awaiter(void 0, void 0, void 0, function () {
+        var bikTracker, userId;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    bikTracker = new BikTracker(bikModel);
+                    return [4 /*yield*/, bikTracker.getUserId(bikModel.r)];
+                case 1:
+                    userId = _a.sent();
+                    return [2 /*return*/, userId];
+            }
+        });
+    }); },
 };
 //# sourceMappingURL=index.js.map
