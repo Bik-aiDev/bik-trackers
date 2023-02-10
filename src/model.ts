@@ -26,15 +26,9 @@ export interface BikTrackerModel {
 export interface ConfigModel {
   firebase: FirebaseOptions;
   vapidKey: string;
-  snowplow: SnowplowModel;
   fcmLocation: {
     [key in StoreSourceType]: string;
   };
-}
-
-export interface SnowplowModel {
-  collectorUrl: string;
-  spSource: string;
 }
 
 export interface EventModel {

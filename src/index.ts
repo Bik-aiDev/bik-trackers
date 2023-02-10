@@ -1,7 +1,6 @@
 import {
   BikModel,
   BikCustomerModel,
-  SnowplowModel,
   StoreSourceType,
 } from "./model";
 import { getMessaging, getToken, Messaging } from "firebase/messaging";
@@ -102,7 +101,7 @@ export class BikTracker {
     const raw = JSON.stringify({
       webPushToken: this.webPushToken,
       partnerCustomerId: this.shopifyCustomerId,
-      storeUrl: "icebreakerss.myshopify.com",
+      storeUrl: window.location.host,
       source: this.source,
     });
 
@@ -113,7 +112,7 @@ export class BikTracker {
     };
 
     const response = await fetch(
-      `http://localhost:8080/bikTrackerApiFunctions-createBikCustomer`,
+      `${this.baseUrl}/bikTrackerApiFunctions-createBikCustomer`,
       requestOptions
     );
     const result = await response.json();
