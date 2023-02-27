@@ -9,7 +9,7 @@ describe('utils test', () => {
     });
 
     test('deleteLocalStorageValue', () => {
-
+        expect({}).toBeDefined
     });
 
     test('createCookie', () => {

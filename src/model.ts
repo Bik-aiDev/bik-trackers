@@ -16,6 +16,7 @@ export interface BikModel {
   baseUrl: string;
   events: string[];
   source: StoreSourceType;
+  isWpOpted: boolean;
 }
 
 export interface BikTrackerModel {

@@ -16,10 +16,6 @@ export const config: {
     },
     vapidKey:
       "BLVUlRsEDGxjmN_wF8awekWP0RsUKeTqu_Wj_ubcppE0pwU7aWPP83L3M6V29u75iURzz1xtYl7GjT5YRVu6fOk",
-    snowplow: {
-      collectorUrl: "https://track.bik.ai",
-      spSource: "https://cdn.jsdelivr.net/gh/Bik-aiDev/snowplow/sp.js",
-    },
     fcmLocation: {
       shopify: "/apps/bik/",
       woocommerce: "/bik/",
@@ -39,10 +35,6 @@ export const config: {
     },
     vapidKey:
       "BIFnDLSqNdBMy7uM5bqChhbEaMha2x-ykva28PVmboCKzTrvq0lOam-c3qUFnsF0A-eqWEvYiwl3vXCXr0LleIA",
-    snowplow: {
-      collectorUrl: "https://track.staging.bik.ai",
-      spSource: "https://cdn.jsdelivr.net/gh/Bik-aiDev/snowplow-staging/sp.js",
-    },
     fcmLocation: {
       shopify: "/apps/bik-staging/",
       woocommerce: "/bik-staging/",

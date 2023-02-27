@@ -1,8 +1,4 @@
-import {
-  BikModel,
-  BikCustomerModel,
-  StoreSourceType,
-} from "./model";
+import { BikModel, BikCustomerModel, StoreSourceType } from "./model";
 import { getMessaging, getToken, Messaging } from "firebase/messaging";
 import { initializeApp } from "firebase/app";
 import {
@@ -35,12 +31,16 @@ export class BikTracker {
 
     this.baseUrl = payload.baseUrl;
     this.source = payload.source;
-    this.initializeMessaging(payload.r);
-    this.setUpListeners(payload.events);
+    if (payload.isWpOpted) {
+      this.initializeMessaging(payload.r);
+      this.setUpListeners(payload.events);
+    }
   }
 
-  async init(r: boolean) {
-    await this.setUpWebPushToken(config[`${r}`].vapidKey);
+  async init(r: boolean, isWpOpted: boolean) {
+    if (isWpOpted) {
+      await this.setUpWebPushToken(config[`${r}`].vapidKey);
+    }
     this.setUpShopifyCustomerId();
   }
 
@@ -144,8 +144,8 @@ export class BikTracker {
     }
   }
 
-  async createOrUpdateBikCustomer(r: boolean): Promise<string> {
-    await this.init(r);
+  async createOrUpdateBikCustomer(r: boolean, isWpOpted: boolean): Promise<string> {
+    await this.init(r, isWpOpted);
 
     if (
       (this.webPushToken || this.shopifyCustomerId) &&
@@ -163,12 +163,12 @@ export class BikTracker {
     return getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID);
   }
 
-  async getUserId(r: boolean) {
+  async getUserId(r: boolean, isWpOpted: boolean) {
     let bikCustomerId = getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID);
     if (bikCustomerId) {
-      this.createOrUpdateBikCustomer(r);
+      this.createOrUpdateBikCustomer(r, isWpOpted);
     } else {
-      bikCustomerId = await this.createOrUpdateBikCustomer(r);
+      bikCustomerId = await this.createOrUpdateBikCustomer(r, isWpOpted);
     }
     return bikCustomerId;
   }
@@ -177,7 +177,7 @@ export class BikTracker {
 global.BIK = {
   getUserId: async (bikModel: BikModel) => {
     const bikTracker = new BikTracker(bikModel);
-    const userId = await bikTracker.getUserId(bikModel.r);
+    const userId = await bikTracker.getUserId(bikModel.r, bikModel.isWpOpted);
     return userId;
   },
 };
