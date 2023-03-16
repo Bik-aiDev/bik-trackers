@@ -24,22 +24,25 @@ export class BikTracker {
   source: StoreSourceType;
   baseUrl: string;
   firebaseMessaging: Messaging;
+  isProd: boolean;
   constructor(payload: BikModel) {
+    this.isProd = payload.r;
+
     this.swFileLocation = `${window.location.protocol}//${
       window.location.host
-    }${config[`${payload.r}`].fcmLocation[payload.source]}bik-webpush.js`;
+    }${config[`${this.isProd}`].fcmLocation[payload.source]}bik-webpush.js`;
 
     this.baseUrl = payload.baseUrl;
     this.source = payload.source;
     if (payload.isWpOpted) {
-      this.initializeMessaging(payload.r);
+      this.initializeMessaging();
       this.setUpListeners(payload.events);
     }
   }
 
-  async init(r: boolean, isWpOpted: boolean) {
+  async init(isWpOpted: boolean) {
     if (isWpOpted) {
-      await this.setUpWebPushToken(config[`${r}`].vapidKey);
+      await this.setUpWebPushToken(config[`${this.isProd}`].vapidKey);
     }
     this.setUpShopifyCustomerId();
   }
@@ -49,8 +52,9 @@ export class BikTracker {
     setUpFCMListener(this.firebaseMessaging, events, this.swFileLocation);
   }
 
-  async initializeMessaging(r: boolean) {
-    const app = initializeApp(config[`${r}`].firebase);
+  async initializeMessaging() {
+    delete config[`${!this.isProd}`];
+    const app = initializeApp(config[`${this.isProd}`].firebase);
     this.firebaseMessaging = getMessaging(app);
   }
 
@@ -144,8 +148,8 @@ export class BikTracker {
     }
   }
 
-  async createOrUpdateBikCustomer(r: boolean, isWpOpted: boolean): Promise<string> {
-    await this.init(r, isWpOpted);
+  async createOrUpdateBikCustomer(isWpOpted: boolean): Promise<string> {
+    await this.init(isWpOpted);
 
     if (
       (this.webPushToken || this.shopifyCustomerId) &&
@@ -164,11 +168,12 @@ export class BikTracker {
   }
 
   async getUserId(r: boolean, isWpOpted: boolean) {
+    this.isProd = r;
     let bikCustomerId = getLocalStorageValue(STORAGE_KEYS.BIK_CUSTOMER_ID);
     if (bikCustomerId) {
-      this.createOrUpdateBikCustomer(r, isWpOpted);
+      this.createOrUpdateBikCustomer(isWpOpted);
     } else {
-      bikCustomerId = await this.createOrUpdateBikCustomer(r, isWpOpted);
+      bikCustomerId = await this.createOrUpdateBikCustomer(isWpOpted);
     }
     return bikCustomerId;
   }

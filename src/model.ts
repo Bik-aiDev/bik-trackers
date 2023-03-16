@@ -3,12 +3,8 @@ export type StoreSourceType = "woocommerce" | "shopify";
 export interface FirebaseOptions {
   apiKey: string;
   appId: string;
-  authDomain: string;
-  databaseURL: string;
   messagingSenderId: string;
   projectId: string;
-  storageBucket: string;
-  serviceAccountId: string;
 }
 
 export interface BikModel {

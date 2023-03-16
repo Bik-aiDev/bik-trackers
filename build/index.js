@@ -45,21 +45,22 @@ var config_1 = require("./config");
 var BikTracker = /** @class */ (function () {
     function BikTracker(payload) {
         this.askedWpPermission = false;
-        this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(payload.r)].fcmLocation[payload.source], "bik-webpush.js");
+        this.isProd = payload.r;
+        this.swFileLocation = "".concat(window.location.protocol, "//").concat(window.location.host).concat(config_1.config["".concat(this.isProd)].fcmLocation[payload.source], "bik-webpush.js");
         this.baseUrl = payload.baseUrl;
         this.source = payload.source;
         if (payload.isWpOpted) {
-            this.initializeMessaging(payload.r);
+            this.initializeMessaging();
             this.setUpListeners(payload.events);
         }
     }
-    BikTracker.prototype.init = function (r, isWpOpted) {
+    BikTracker.prototype.init = function (isWpOpted) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         if (!isWpOpted) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.setUpWebPushToken(config_1.config["".concat(r)].vapidKey)];
+                        return [4 /*yield*/, this.setUpWebPushToken(config_1.config["".concat(this.isProd)].vapidKey)];
                     case 1:
                         _a.sent();
                         _a.label = 2;
@@ -79,11 +80,12 @@ var BikTracker = /** @class */ (function () {
             });
         });
     };
-    BikTracker.prototype.initializeMessaging = function (r) {
+    BikTracker.prototype.initializeMessaging = function () {
         return __awaiter(this, void 0, void 0, function () {
             var app;
             return __generator(this, function (_a) {
-                app = (0, app_1.initializeApp)(config_1.config["".concat(r)].firebase);
+                delete config_1.config["".concat(!this.isProd)];
+                app = (0, app_1.initializeApp)(config_1.config["".concat(this.isProd)].firebase);
                 this.firebaseMessaging = (0, messaging_1.getMessaging)(app);
                 return [2 /*return*/];
             });
@@ -222,12 +224,12 @@ var BikTracker = /** @class */ (function () {
             });
         });
     };
-    BikTracker.prototype.createOrUpdateBikCustomer = function (r, isWpOpted) {
+    BikTracker.prototype.createOrUpdateBikCustomer = function (isWpOpted) {
         return __awaiter(this, void 0, void 0, function () {
             var bikCustomer;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.init(r, isWpOpted)];
+                    case 0: return [4 /*yield*/, this.init(isWpOpted)];
                     case 1:
                         _a.sent();
                         if (!((this.webPushToken || this.shopifyCustomerId) &&
@@ -254,11 +256,12 @@ var BikTracker = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        this.isProd = r;
                         bikCustomerId = (0, utils_1.getLocalStorageValue)(0 /* STORAGE_KEYS.BIK_CUSTOMER_ID */);
                         if (!bikCustomerId) return [3 /*break*/, 1];
-                        this.createOrUpdateBikCustomer(r, isWpOpted);
+                        this.createOrUpdateBikCustomer(isWpOpted);
                         return [3 /*break*/, 3];
-                    case 1: return [4 /*yield*/, this.createOrUpdateBikCustomer(r, isWpOpted)];
+                    case 1: return [4 /*yield*/, this.createOrUpdateBikCustomer(isWpOpted)];
                     case 2:
                         bikCustomerId = _a.sent();
                         _a.label = 3;
